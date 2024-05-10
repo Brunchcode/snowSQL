@@ -1,0 +1,74 @@
+Create or replace database mydatabase;
+
+--create temporary tables
+create or replace temporary table mycsvtable(
+    id INTEGER,
+    last_name STRING,
+    first_name STRING,
+    company STRING,
+    email STRING,
+    workphone STRING,
+    cellphone STRING,
+    streetaddress STRING,
+    city STRING,
+    postalcode STRING
+);
+
+
+create or replace temporary table myjsontable(
+json_data variant
+);
+
+-- create file format object
+create or replace file format mycsvformat
+    type = 'CSV'
+    field_delimiter = '|'
+    skip_header = 1;
+
+create or replace file format myjsonformat
+    type = 'JSON'
+    strip_outer_array = true;
+
+-- creating a named staged object
+create or replace stage my_csv_stage
+file_format = mycsvformat
+url = 's3://snowflake-docs';
+
+--create or replace stage @my_csv_stage
+--file_format = mycsvformat
+--url = 's3://private-bucket'
+--storage_integration = myint;
+
+create or replace stage my_json_stage
+file_format = myjsonformat
+url = 's3://snowflake-docs';
+
+
+-- copy data from staged location into database table 
+copy into mycsvtable
+    from @my_csv_stage/tutorials/dataloading/contacts1.csv
+    on_error = 'skip_file';
+
+
+copy into mycsvtable
+    from @my_csv_stage/tutorials/dataloading/
+    pattern = '.*contacts[1-5].csv'
+    on_error = 'skip_file';
+
+
+--json
+copy into myjsontable
+    from @my_json_stage/tutorials/dataloading/contacts.json
+    on_error = 'skip_file';
+
+
+
+-- verify loaded data 
+select * from mycsvtable;
+
+select * from myjsontable;
+
+
+-- clean up
+drop database if exists mydatabase;
+
